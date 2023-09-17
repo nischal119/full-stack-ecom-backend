@@ -50,7 +50,6 @@ export const isBuyer = async (req, res, next) => {
   const splittedArray = authorization?.split(" ");
 
   const token = splittedArray?.length === 2 && splittedArray[1];
-  //   console.log(token);
 
   // if not token, terminate
   if (!token) {

@@ -119,9 +119,10 @@ export const getAllProducts = async (req, res) => {
   if (query?.category?.length) {
     match.category = { $in: query.category };
   }
-  if (Object.entries(price).length >= 0) {
+  if (query.minPrice || query.maxPrice) {
     match.price = price;
   }
+
   const products = await Product.aggregate([
     {
       $match: match,
@@ -186,4 +187,59 @@ export const getSellerProducts = async (req, res) => {
   const totalpage = Math.ceil(totalProducts / query.limit);
 
   return res.status(200).send({ products, totalpage });
+};
+export const editProduct = async (req, res) => {
+  // get logged  in userId from isSeller middle
+  const loggedInUserId = req.loggedInUser._id;
+
+  const productId = req.params.id;
+  // validate product id
+  const isValidMongoId = checkMongooseIdValidity(productId);
+
+  if (!isValidMongoId) {
+    return res.status(400).send({ message: "Invalid mongo id." });
+  }
+
+  // validate req.body
+  const updatedProduct = req.body;
+
+  // validate updatedProduct
+  try {
+    await addProductValidationSchema.validateAsync(updatedProduct);
+  } catch (error) {
+    return res.status(400).send({ message: error.message });
+  }
+
+  // check if product exists
+  const product = await Product.findOne({ _id: productId });
+
+  if (!product) {
+    return res.status(404).send({ message: "Product does not exist." });
+  }
+
+  // check if logged in user is owner of product
+  const isLoggedInUserOwnerOfProduct = loggedInUserId.equals(product.sellerId);
+
+  if (!isLoggedInUserOwnerOfProduct) {
+    return res
+      .status(409)
+      .send({ message: "You are not owner of this product." });
+  }
+
+  // edit product
+  await Product.updateOne(
+    { _id: productId },
+    {
+      $set: {
+        name: updatedProduct.name,
+        company: updatedProduct.company,
+        price: updatedProduct.price,
+        freeShipping: updatedProduct.freeShipping,
+        quantity: updatedProduct.quantity,
+        category: updatedProduct.category,
+      },
+    }
+  );
+
+  return res.status(200).send({ message: "Product is updated successfully." });
 };

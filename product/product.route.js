@@ -6,6 +6,7 @@ import {
   getProductDetails,
   getAllProducts,
   getSellerProducts,
+  editProduct,
 } from "./product.service.js";
 
 const router = express.Router();
@@ -25,4 +26,5 @@ router.post("/product/buyer/all", isBuyer, getAllProducts);
 // get products by seller
 router.post("/product/seller/all", isSeller, getSellerProducts);
 
+router.put("/product/edit/:id", isSeller, editProduct);
 export default router;

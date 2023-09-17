@@ -2,6 +2,8 @@ import express from "express";
 import { isBuyer } from "../auth/auth.middleware.js";
 import { Product } from "../product/product.entity.js";
 import { Cart } from "./cart.entity.js";
+import { checkMongooseIdValidity } from "../utils/utils.js";
+import mongoose from "mongoose";
 
 const router = express.Router();
 
@@ -24,15 +26,20 @@ router.post("/cart/add/item", isBuyer, async (req, res) => {
   }
 
   //   add item to cart of that buyer
-  const buyerId = req.loggedInUser._id;
-
+  const buyerId = req.loggedInUser?._id;
+  const isValidMongoId = checkMongooseIdValidity(productId);
+  if (!isValidMongoId)
+    return res.status(400).send({ message: "Invalid Mongo id" });
   await Cart.updateOne(
     {
       buyerId: buyerId,
     },
     {
       $push: {
-        productList: { productId, quantity },
+        productList: {
+          productId: new mongoose.Types.ObjectId(productId),
+          quantity,
+        },
       },
     },
     {
@@ -46,7 +53,7 @@ router.post("/cart/add/item", isBuyer, async (req, res) => {
 });
 
 router.put("/cart/remove/item/:id", isBuyer, async (req, res) => {
-  const userId = req.loggedInUser._id;
+  const userId = req.loggedInUser?._id;
 
   const productId = req.params.id;
 
@@ -96,5 +103,42 @@ router.put("/cart/update/quantity/:id", isBuyer, async (req, res) => {
 
   return res.status(200).send({ message: "Cart is updated successfully." });
 });
+router.get("/cart/details", isBuyer, async (req, res) => {
+  const loggedInUserId = req?.loggedInUser?._id;
+  let data = await Cart.aggregate([
+    {
+      $match: {
+        buyerId: loggedInUserId,
+      },
+    },
+    {
+      $unwind: "$productList",
+    },
+    {
+      $lookup: {
+        from: "products",
+        localField: "productList.productId",
+        foreignField: "_id",
+        as: "productDetails",
+      },
+    },
+    {
+      $project: {
+        name: { $first: "$productDetails.name" },
+        brand: { $first: "$productDetails.brand" },
+        company: { $first: "$productDetails.company" },
+        unitPrice: { $first: "$productDetails.price" },
+        availableQuantity: { $first: "$productDetails.quantity" },
+        orderQuantity: "$productList.quantity",
+        productId: { $first: "$productDetails._id" },
+      },
+    },
+  ]);
+  data = data.map((item) => {
+    const totalPrice = item.unitPrice * item.orderQuantity;
+    return { ...item, totalPrice };
+  });
 
+  return res.status(200).send(data);
+});
 export default router;
