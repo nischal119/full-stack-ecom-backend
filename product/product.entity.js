@@ -16,6 +16,18 @@ const productSchema = new mongoose.Schema({
     trim: true,
     required: true,
   },
+  description: {
+    type: String,
+    minlength: 10,
+    maxlength: 1000,
+    trim: true,
+    required: true,
+  },
+  image: {
+    type: String,
+    required: false,
+  },
+
   price: {
     type: Number,
     min: 0,

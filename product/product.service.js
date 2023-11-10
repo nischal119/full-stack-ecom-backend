@@ -177,6 +177,8 @@ export const getSellerProducts = async (req, res) => {
         price: 1,
         category: 1,
         sellerId: 1,
+        description: 1,
+        imageUrl: 1,
       },
     },
   ]);

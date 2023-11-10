@@ -6,6 +6,8 @@ export const addProductValidationSchema = Joi.object({
   price: Joi.number().min(0).required(),
   freeShipping: Joi.boolean().required(),
   quantity: Joi.number().min(1).required().integer(),
+  description: Joi.string().min(10).max(1000).trim().required(),
+  imageUrl: Joi.string().allow(null, ""),
   category: Joi.string()
     .trim()
     .required()
@@ -28,6 +30,7 @@ export const getAllProductsValidation = Joi.object({
   searchText: Joi.string().allow(null, ""),
   minPrice: Joi.number().min(0).allow(null, ""),
   maxPrice: Joi.number().min(0).allow(null, ""),
+  imageUrl: Joi.string().allow(null, ""),
   category: Joi.array().items(
     Joi.string().valid(
       "grocery",
